@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var express = require("express");
 var app = express();
+var multipart = require('connect-multiparty');
+var multipartMiddleware = multipart();
 app.get('/', function (request, response) {
     response.writeHead(200, { 'Content-Type': 'text/plain;charset=utf-8', 'Access-Control-Allow-Origin': '*' });
     response.end("这是首页");
@@ -17,6 +19,12 @@ app.get('/jsonp', function (req, res, next) {
     else {
         res.jsonp(data);
     }
+});
+app.post('/upload', multipartMiddleware, function (req, res) {
+    console.log(req.body, req.files);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end('已收到');
+    // don't forget to delete all req.files when done
 });
 app.listen("8080", function () {
     console.log("服务已启动");
