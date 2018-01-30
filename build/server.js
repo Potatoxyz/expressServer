@@ -78,10 +78,21 @@ app.post('/upload', function (req, res) {
         if (err) {
             console.log(err);
         }
-        fs.renameSync(files.file[0].path, files.file[0].originalFilename);
-        console.log(typeof files.file[0].path);
-        console.log(fields);
-        console.log(files);
+        //console.log(files);
+        //分两种情况，一: 单个提交方式二：formData提交即全部提交
+        if (files.file) {
+            for (var i = 0; i < files.file.length; i++) {
+                fs.renameSync(files.file[i].path, 'upload/' + files.file[i].originalFilename);
+            }
+            console.log('single');
+        }
+        else {
+            for (var key in files) {
+                //console.log(files[key][0].path);
+                fs.renameSync(files[key][0].path, 'upload/' + files[key][0].originalFilename);
+            }
+            console.log('all');
+        }
     });
     res.type('json');
     res.send({ result: '收到' });
