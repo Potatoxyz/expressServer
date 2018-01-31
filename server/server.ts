@@ -52,29 +52,81 @@ app.get('/charts',  (req, res, next) =>{
 });
 
 
+
 app.get('/filesList',(req, res) =>{
-    res.send(fileList);
+    //读取本地文件
+    let fileArray=fs.readdirSync(path.resolve(__dirname,'../upload'));
+    let filelist:Array<fileModel>=[];
+    for(let i=0;i<fileArray.length;i++){
+        var subfilename=fs.readdirSync(path.resolve(__dirname,'../upload/'+fileArray[i]));
+        filelist.push({filename:fileArray[i],subfiles:subfilename})
+    }
+    //console.log(filelist);
+    res.send(filelist);
     res.end();
 });
 app.post('/addfile',(req, res) =>{
-    res.send('添加');
-    console.log(req.body);
-    res.end();
+    console.log(req.body.filename);
+    let filename=req.body.filename;
+    let exist=fs.existsSync(path.resolve(__dirname,'../upload/'+filename));
+    if(!exist){
+        fs.mkdirSync(path.resolve(__dirname,'../upload/'+filename));
+        res.send('添加成功');
+    }
+    else{
+        res.end('文件夹已经存在');
+    }
 });
 app.post('/deletefile',(req, res) =>{
-    res.send('删除');
     console.log(req.body);
+    var targetFileName=req.body.targetFile;
+    var result;
+    try{
+        fs.rmdirSync(path.resolve(__dirname,'../upload/'+targetFileName));
+        result={result:true,message:'删除成功'};
+    }
+    catch (err){
+        if(err){
+            result={result:false,message:'删除失败'};
+        }
+    }
+    res.send(result);
     res.end();
 });
 app.post('/editfile',(req, res) =>{
-    console.log(req.body.beforetext);
-    for(var i=0;i<fileList.length;i++){
-        if(fileList[i].filename==req.body.beforetext){
-            fileList[i].filename=req.body.aftertext;
-        }
+    //console.log(req.body);
+    let beforetext=req.body.beforetext;
+    let aftertext=req.body.aftertext;
+    //要修改的文件夹存在，修改之后不能同名
+    let exist=fs.existsSync(path.resolve(__dirname,'../upload/'+beforetext));
+    if(!exist){
+        res.send('文件不存在');
     }
-    res.send('修改成功');
+    else{
+        try{
+            fs.renameSync(path.resolve(__dirname,'../upload/'+beforetext),path.resolve(__dirname,'../upload/'+aftertext));
+            res.send('修改成功');
+        }
+        catch (err){
+            if(err){
+                //console.log(err);
+                res.send('修改失败');
+            }
+        }
+
+    }
     res.end();
+});
+let targetFile:string='';
+app.post('/targetFile',(req, res) =>{
+    targetFile=req.body.targetFile;
+    let targetfilePath=path.resolve(__dirname,'../upload/'+targetFile);
+
+    //判断文件夹是否存在
+    if(!fs.existsSync(targetfilePath)){
+        fs.mkdirSync(targetfilePath);
+    }
+    res.end('文件夹无误');
 });
 app.post('/upload', function(req, res) {
     //console.log(path.resolve(__dirname,'get-upload'));
@@ -83,18 +135,17 @@ app.post('/upload', function(req, res) {
         if(err){
             console.log(err);
         }
-        //console.log(files);
         //分两种情况，一: 单个提交方式二：formData提交即全部提交
         if(files.file){
             for(var i=0;i<files.file.length;i++){
-                fs.renameSync(files.file[i].path,'upload/'+files.file[i].originalFilename);
+                fs.renameSync(files.file[i].path,'upload/'+targetFile+'/'+files.file[i].originalFilename);
             }
             console.log('single');
         }
         else{
             for(var key in files){
                 //console.log(files[key][0].path);
-                fs.renameSync(files[key][0].path,'upload/'+files[key][0].originalFilename);
+                fs.renameSync(files[key][0].path,'upload/'+targetFile+'/'+files[key][0].originalFilename);
             }
             console.log('all');
         }
@@ -120,11 +171,11 @@ function getData(CurrentPage,PageSize){
 
 }
 let data=[];
-let fileList:Array<fileModal>=[
-    {filename:'默认文件夹',subfiles:['666.jpg','7777.jpg']},
-    {filename:'test1',subfiles:['xxx.jpg','yyyy.jpg']},
-];
-export class fileModal{
+// let fileList:Array<fileModel>=[
+//     {filename:'默认文件夹',subfiles:['666.jpg','7777.jpg']},
+//     {filename:'test1',subfiles:['xxx.jpg','yyyy.jpg']},
+// ];
+export class fileModel{
     filename:string;
     subfiles:string[];
 }
