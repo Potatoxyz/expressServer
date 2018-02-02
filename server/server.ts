@@ -58,8 +58,18 @@ app.get('/filesList',(req, res) =>{
     let fileArray=fs.readdirSync(path.resolve(__dirname,'../upload'));
     let filelist:Array<fileModel>=[];
     for(let i=0;i<fileArray.length;i++){
-        var subfilename=fs.readdirSync(path.resolve(__dirname,'../upload/'+fileArray[i]));
-        filelist.push({filename:fileArray[i],subfiles:subfilename})
+        try {
+            var isdir=fs.lstatSync(path.resolve(__dirname,'../upload/'+fileArray[i])).isDirectory();
+            //console.log(isdir);
+            if(isdir){
+                var subfilename=fs.readdirSync(path.resolve(__dirname,'../upload/'+fileArray[i]));
+                filelist.push({filename:fileArray[i],subfiles:subfilename})
+            }
+        }
+        catch (err){
+            console.log(err);
+        }
+
     }
     //console.log(filelist);
     res.send(filelist);
@@ -78,11 +88,16 @@ app.post('/addfile',(req, res) =>{
     }
 });
 app.post('/deletefile',(req, res) =>{
-    console.log(req.body);
-    var targetFileName=req.body.targetFile;
+    var targetFileName=req.body;
     var result;
     try{
-        fs.rmdirSync(path.resolve(__dirname,'../upload/'+targetFileName));
+        for(let key in targetFileName){
+            var arr=key.split(',');
+            arr.forEach((value)=>{
+                console.log(value);
+                fs.rmdirSync(path.resolve(__dirname,'../upload/'+value));
+            })
+        }
         result={result:true,message:'删除成功'};
     }
     catch (err){
@@ -121,38 +136,62 @@ let targetFile:string='';
 app.post('/targetFile',(req, res) =>{
     targetFile=req.body.targetFile;
     let targetfilePath=path.resolve(__dirname,'../upload/'+targetFile);
-
+    var result={result:true,message:'要保存到的目录:'+targetFile};
     //判断文件夹是否存在
     if(!fs.existsSync(targetfilePath)){
         fs.mkdirSync(targetfilePath);
+        result={result:true,message:'文件夹不存在，新建文件夹'};
     }
-    res.end('文件夹无误');
+    res.send(result);
+    res.end();
 });
 app.post('/upload', function(req, res) {
     //console.log(path.resolve(__dirname,'get-upload'));
-    var form = new multiparty.Form({uploadDir:path.resolve(__dirname,'../upload')});
+    var form = new multiparty.Form({uploadDir:path.resolve(__dirname,'../upload/')});
+    var result;
     form.parse(req, function(err, fields, files) {
         if(err){
             console.log(err);
         }
         //分两种情况，一: 单个提交方式二：formData提交即全部提交
         if(files.file){
-            for(var i=0;i<files.file.length;i++){
-                fs.renameSync(files.file[i].path,'upload/'+targetFile+'/'+files.file[i].originalFilename);
-            }
             console.log('single');
+            try {
+                fs.renameSync(files.file[0].path,path.resolve(__dirname,'../upload/'+targetFile+'/'+files.file[0].originalFilename));
+                result={result:true,message:'上传成功'};
+                console.log('单个提交上传成功');
+                res.send(result);
+                res.end();
+            }
+            catch (err){
+                result={result:false,message:err};
+                console.log(err);
+                res.send(result);
+                res.end();
+            }
         }
         else{
-            for(var key in files){
-                //console.log(files[key][0].path);
-                fs.renameSync(files[key][0].path,'upload/'+targetFile+'/'+files[key][0].originalFilename);
-            }
             console.log('all');
+            try{
+                for(var key in files){
+                    //console.log(files[key][0].path);
+                    fs.renameSync(files[key][0].path,path.resolve(__dirname,'../upload/'+targetFile+'/'+files[key][0].originalFilename));
+                }
+                result={result:true,message:'上传成功'};
+                console.log('all提交上传成功');
+                res.send(result);
+                res.end();
+            }
+            catch (err){
+                result={result:false,message:'上传失败'};
+                console.log(err);
+                res.send(result);
+                res.end();
+            }
         }
     });
     res.type('json');
-    res.send({result:'收到'});
-    res.end();
+
     // don't forget to delete all req.files when done
 });
 
