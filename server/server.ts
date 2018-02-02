@@ -90,23 +90,46 @@ app.post('/addfile',(req, res) =>{
 app.post('/deletefile',(req, res) =>{
     var targetFileName=req.body;
     var result;
+    var delsubfiles=function (dir,subfiles,delDir) {
+        subfiles.forEach(value1=>{
+            fs.unlinkSync(path.resolve(__dirname,`../upload/${dir}/${value1}`));
+        });
+        delDir(dir);
+    };
+    var deldir=function (dir) {
+        fs.rmdirSync(path.resolve(__dirname,'../upload/'+dir));
+    };
     try{
         for(let key in targetFileName){
             var arr=key.split(',');
             arr.forEach((value)=>{
                 console.log(value);
-                fs.rmdirSync(path.resolve(__dirname,'../upload/'+value));
+                fs.readdir(path.resolve(__dirname,'../upload/'+value),(err, files)=>{
+                    //是否是空文件夹,如果是，先删除子文件
+                    if(files){
+                        delsubfiles(value,files,deldir);
+                        // files.forEach(value1=>{
+                        //     fs.unlinkSync(path.resolve(__dirname,`../upload/${value}/${value1}`));
+                        // })
+                    }
+                    else{
+                        deldir(value);
+                        //fs.rmdirSync(path.resolve(__dirname,'../upload/'+value));
+                    }
+                });
             })
         }
         result={result:true,message:'删除成功'};
+        res.send(result);
+        res.end();
     }
     catch (err){
-        if(err){
-            result={result:false,message:'删除失败'};
-        }
+        console.log(err);
+        result={result:false,message:'删除失败'};
+        res.send(result);
+        res.end();
     }
-    res.send(result);
-    res.end();
+
 });
 app.post('/editfile',(req, res) =>{
     //console.log(req.body);
