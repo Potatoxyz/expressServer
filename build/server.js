@@ -16,6 +16,7 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
+app.use('/static', express.static(path.resolve(__dirname, '../upload/')));
 app.all('*', function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "Content-Type,Content-Length, Authorization, Accept,X-Requested-With");
@@ -47,6 +48,7 @@ app.get('/jsonp', function (req, res, next) {
 app.get('/charts', function (req, res, next) {
     res.jsonp(data);
 });
+//获取文件夹及子文件名
 app.get('/filesList', function (req, res) {
     //读取本地文件
     var fileArray = fs.readdirSync(path.resolve(__dirname, '../upload'));
@@ -68,6 +70,7 @@ app.get('/filesList', function (req, res) {
     res.send(filelist);
     res.end();
 });
+//添加文件夹
 app.post('/addfile', function (req, res) {
     console.log(req.body.filename);
     var filename = req.body.filename;
@@ -80,6 +83,7 @@ app.post('/addfile', function (req, res) {
         res.end('文件夹已经存在');
     }
 });
+//删除文件夹
 app.post('/deletefile', function (req, res) {
     var targetFileName = req.body;
     var result;
@@ -123,6 +127,7 @@ app.post('/deletefile', function (req, res) {
         res.end();
     }
 });
+//编辑文件夹
 app.post('/editfile', function (req, res) {
     //console.log(req.body);
     var beforetext = req.body.beforetext;
@@ -147,6 +152,7 @@ app.post('/editfile', function (req, res) {
     res.end();
 });
 var targetFile = '';
+//上传图片之前先验证文件夹
 app.post('/targetFile', function (req, res) {
     targetFile = req.body.targetFile;
     var targetfilePath = path.resolve(__dirname, '../upload/' + targetFile);
@@ -159,6 +165,7 @@ app.post('/targetFile', function (req, res) {
     res.send(result);
     res.end();
 });
+//上传图片
 app.post('/upload', function (req, res) {
     //console.log(path.resolve(__dirname,'get-upload'));
     var form = new multiparty.Form({ uploadDir: path.resolve(__dirname, '../upload/') });
@@ -206,6 +213,36 @@ app.post('/upload', function (req, res) {
     });
     res.type('json');
     // don't forget to delete all req.files when done
+});
+//获取图片,两种方法，一是生成url地址,可以缓存，二是生成base64,不能缓存
+app.get('/getPic', function (req, res) {
+    var targetfile = req.query.data;
+    //console.log(req.query);
+    if (targetfile) {
+        try {
+            fs.readdir(path.resolve(__dirname, '../upload/' + targetfile), function (err, files) {
+                if (files) {
+                    var urls = [];
+                    files.forEach(function (value) {
+                        urls.push("http://localhost:8081/static/" + targetfile + "/" + value);
+                    });
+                    res.send(urls);
+                    res.end();
+                }
+            });
+        }
+        catch (err) {
+            console.log(err);
+            console.log('读取失败');
+            res.type('json');
+            res.send({ result: false, message: '文件获取失败' });
+            res.end();
+        }
+    }
+    else {
+        res.send({ result: false, message: '文件获取失败' });
+        res.end();
+    }
 });
 app.get('/pda', function (req, res, next) {
     console.log(req.query);

@@ -19,6 +19,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+app.use('/static', express.static(path.resolve(__dirname,'../upload/')));
+
 
 app.all('*', function(req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
@@ -52,7 +54,7 @@ app.get('/charts',  (req, res, next) =>{
 });
 
 
-
+//获取文件夹及子文件名
 app.get('/filesList',(req, res) =>{
     //读取本地文件
     let fileArray=fs.readdirSync(path.resolve(__dirname,'../upload'));
@@ -75,6 +77,7 @@ app.get('/filesList',(req, res) =>{
     res.send(filelist);
     res.end();
 });
+//添加文件夹
 app.post('/addfile',(req, res) =>{
     console.log(req.body.filename);
     let filename=req.body.filename;
@@ -87,6 +90,7 @@ app.post('/addfile',(req, res) =>{
         res.end('文件夹已经存在');
     }
 });
+//删除文件夹
 app.post('/deletefile',(req, res) =>{
     var targetFileName=req.body;
     var result;
@@ -131,6 +135,7 @@ app.post('/deletefile',(req, res) =>{
     }
 
 });
+//编辑文件夹
 app.post('/editfile',(req, res) =>{
     //console.log(req.body);
     let beforetext=req.body.beforetext;
@@ -156,6 +161,7 @@ app.post('/editfile',(req, res) =>{
     res.end();
 });
 let targetFile:string='';
+//上传图片之前先验证文件夹
 app.post('/targetFile',(req, res) =>{
     targetFile=req.body.targetFile;
     let targetfilePath=path.resolve(__dirname,'../upload/'+targetFile);
@@ -168,6 +174,7 @@ app.post('/targetFile',(req, res) =>{
     res.send(result);
     res.end();
 });
+//上传图片
 app.post('/upload', function(req, res) {
     //console.log(path.resolve(__dirname,'get-upload'));
     var form = new multiparty.Form({uploadDir:path.resolve(__dirname,'../upload/')});
@@ -216,6 +223,35 @@ app.post('/upload', function(req, res) {
     res.type('json');
 
     // don't forget to delete all req.files when done
+});
+//获取图片,两种方法，一是生成url地址,可以缓存，二是生成base64,不能缓存
+app.get('/getPic', function(req, res){
+    var targetfile=req.query.data;
+    //console.log(req.query);
+    if(targetfile){
+        try{
+            fs.readdir(path.resolve(__dirname,'../upload/'+targetfile),(err,files)=>{
+                if(files){
+                    var urls=[];
+                    files.forEach((value)=>{
+                        urls.push(`http://localhost:8081/static/${targetfile}/${value}`);
+                    });
+                    res.send(urls);
+                    res.end();
+                }
+            })
+        }catch (err){
+            console.log(err);
+            console.log('读取失败');
+            res.type('json');
+            res.send({result:false,message:'文件获取失败'});
+            res.end();
+        }
+    }
+    else{
+        res.send({result:false,message:'文件获取失败'});
+        res.end();
+    }
 });
 
 app.get('/pda',  (req, res, next) =>{
