@@ -224,7 +224,7 @@ app.get('/getPic', function (req, res) {
                 if (files) {
                     var urls = [];
                     files.forEach(function (value) {
-                        urls.push("http://172.20.1.146:8081/static/" + targetfile + "/" + value);
+                        urls.push("http://localhost:8081/static/" + targetfile + "/" + value);
                     });
                     res.send({ result: true, message: '文件获取成功', data: urls });
                     res.end();
@@ -259,7 +259,7 @@ var data = [];
 //     {filename:'默认文件夹',subfiles:['666.jpg','7777.jpg']},
 //     {filename:'test1',subfiles:['xxx.jpg','yyyy.jpg']},
 // ];
-var fileModel = (function () {
+var fileModel = /** @class */ (function () {
     function fileModel() {
     }
     return fileModel;
